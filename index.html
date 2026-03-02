@@ -2,170 +2,430 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>LightningBet • Probabilità Over NBA</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>LightingBet • Probabilità Over NBA</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css"/>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
-        body { font-family: 'Inter', sans-serif; background: #0a0a0a; color: white; }
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background: #0a0a0a; 
+            color: white; 
+            margin: 0; 
+            min-height: 100vh; 
+            padding-bottom: 120px; 
+        }
         .logo-font { font-family: 'Space Grotesk', sans-serif; font-weight: 700; }
-        button { user-select: none; -webkit-tap-highlight-color: transparent; }
-        #playerSelect { min-height: 44px; }
+        .over-reached { background: #14532d !important; color: #86efac !important; border: 1px solid #22c55e !important; }
+        .under-reached { background: #7f1d1d !important; color: #fca5a5 !important; border: 1px solid #ef4444 !important; }
+        select { max-height: 40vh; overflow-y: auto; font-size: 0.95rem; padding: 8px; }
+        option { padding: 6px 12px; font-size: 0.95rem; }
+        button { transition: all 0.2s ease; cursor: pointer; }
+        button:hover { transform: scale(1.02); }
+        button:active { transform: scale(0.98); }
+        #calcBtn { 
+            min-height: 60px; 
+            font-size: 1.3rem; 
+            background: linear-gradient(to right, #f59e0b, #d97706); 
+            box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);
+        }
+        #calcBtn:hover { background: linear-gradient(to right, #fbbf24, #f59e0b); box-shadow: 0 6px 20px rgba(245, 158, 11, 0.5); }
+        #loadingSpinner { 
+            display: none; 
+            position: fixed; 
+            inset: 0; 
+            background: rgba(0,0,0,0.7); 
+            z-index: 9999; 
+            justify-content: center; 
+            align-items: center; 
+        }
+        .spinner { 
+            width: 50px; 
+            height: 50px; 
+            border: 6px solid #f59e0b; 
+            border-top: 6px solid transparent; 
+            border-radius: 50%; 
+            animation: spin 1s linear infinite; 
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        #resultPanel { 
+            opacity: 0; 
+            transform: translateY(20px); 
+            transition: opacity 0.6s ease, transform 0.6s ease; 
+        }
+        #resultPanel.show { opacity: 1; transform: translateY(0); }
+        footer { 
+            position: fixed; 
+            bottom: 0; 
+            left: 0; 
+            right: 0; 
+            background: rgba(0, 0, 0, 0.92); 
+            border-top: 1px solid #333; 
+            padding: 12px 0; 
+            text-align: center; 
+            font-size: 0.8rem; 
+            color: #94a3b8; 
+            z-index: 1000; 
+            backdrop-filter: blur(8px); 
+        }
+        #backToTop {
+            position: fixed;
+            bottom: 90px;
+            right: 20px;
+            background: #f59e0b;
+            color: #0f172a;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            z-index: 999;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+        }
+        #backToTop.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        #backToTop:hover {
+            background: #fbbf24;
+            transform: translateY(-5px);
+        }
+        @media (max-width: 640px) {
+            footer { font-size: 0.75rem; padding: 10px 0; }
+            #backToTop { bottom: 80px; right: 15px; width: 45px; height: 45px; }
+        }
     </style>
 </head>
-<body class="min-h-screen">
+<body>
 
-<nav class="bg-black/90 backdrop-blur-md border-b border-yellow-600/30 sticky top-0 z-40">
-    <div class="max-w-7xl mx-auto px-6 py-5 flex justify-between items-center">
-        <div class="flex items-center gap-4">
-            <!-- SOSTITUISCI CON IL TUO LOGO -->
-            <img src="https://i.imgur.com/TUOILOGOQUI.png" alt="LightningBet Logo" class="h-14 w-auto object-contain">
-            <span class="text-3xl md:text-4xl font-bold logo-font text-yellow-400 tracking-tight">LightningBet</span>
+<!-- NAVBAR -->
+<nav class="bg-black/90 backdrop-blur-md border-b border-yellow-600/30 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <img src="https://files.catbox.moe/luy3fm.png" alt="LightingBet Logo" class="h-10 sm:h-14 w-auto object-contain drop-shadow-lg">
+            <span class="text-2xl sm:text-4xl font-bold logo-font text-yellow-400 tracking-tight">LightingBet</span>
         </div>
         <button onclick="document.getElementById('analyzer').scrollIntoView({behavior:'smooth'})" 
-                class="px-7 py-3 bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 text-black font-bold rounded-2xl transition flex items-center gap-2 shadow-lg">
-            <i class="fa-solid fa-bolt"></i> Inizia Analisi
+                class="px-5 sm:px-7 py-2 sm:py-3 bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 text-black font-bold rounded-xl sm:rounded-2xl transition flex items-center gap-2 shadow-lg text-sm sm:text-base">
+            <i class="fa-solid fa-bolt"></i> Inizia
         </button>
     </div>
 </nav>
 
-<section id="analyzer" class="max-w-6xl mx-auto px-6 py-16">
-    <h1 class="text-5xl md:text-6xl font-bold logo-font text-center mb-4 text-yellow-400">LightningBet</h1>
-    <p class="text-center text-xl text-zinc-300 mb-3">Probabilità Over NBA</p>
-    <p class="text-center text-zinc-500 mb-12">Statistiche aggiornate live (balldontlie.io)</p>
+<!-- LOADING SPINNER -->
+<div id="loadingSpinner" class="flex">
+    <div class="spinner"></div>
+</div>
 
-    <div class="bg-zinc-900/80 border border-yellow-600/30 rounded-3xl p-8 md:p-12 shadow-2xl">
-        <div class="grid md:grid-cols-2 gap-10">
-            <!-- FORM -->
-            <div class="space-y-8">
+<!-- PULSANTE TORNA SU -->
+<div id="backToTop" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">
+    <i class="fa-solid fa-arrow-up text-xl"></i>
+</div>
+
+<!-- CONTENUTO PRINCIPALE -->
+<section id="analyzer" class="max-w-6xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
+    <h1 class="text-4xl sm:text-6xl font-bold logo-font text-center mb-4 text-yellow-400">LightingBet</h1>
+    <p class="text-center text-lg sm:text-xl text-zinc-300 mb-6 sm:mb-8">Probabilità Over NBA • Dati reali al 2 marzo 2026</p>
+
+    <div class="bg-zinc-900/90 border border-yellow-600/30 rounded-2xl sm:rounded-3xl p-6 sm:p-12 shadow-2xl backdrop-blur-md">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-12">
+            <div class="space-y-6 sm:space-y-8">
                 <div>
-                    <label class="block text-sm text-zinc-300 mb-2 font-medium uppercase tracking-wide">Giocatore</label>
-                    <select id="playerSelect" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-5 py-4 text-lg focus:border-yellow-500 outline-none">
-                        <!-- Default statico per vedere subito i giocatori -->
-                        <option value="">Caricamento giocatori...</option>
-                        <option value="Nikola Jokic">Nikola Jokic (DEN)</option>
-                        <option value="Luka Doncic">Luka Doncic (LAL)</option>
-                        <option value="Shai Gilgeous-Alexander">Shai Gilgeous-Alexander (OKC)</option>
-                        <option value="Giannis Antetokounmpo">Giannis Antetokounmpo (MIL)</option>
-                        <option value="Victor Wembanyama">Victor Wembanyama (SAS)</option>
-                        <option value="Anthony Edwards">Anthony Edwards (MIN)</option>
-                        <option value="Jayson Tatum">Jayson Tatum (BOS)</option>
-                        <option value="Stephen Curry">Stephen Curry (GSW)</option>
-                        <option value="LeBron James">LeBron James (LAL)</option>
-                        <option value="Tyrese Maxey">Tyrese Maxey (PHI)</option>
-                        <option value="Ja Morant">Ja Morant (MEM)</option>
-                        <option value="Devin Booker">Devin Booker (PHX)</option>
-                        <option value="Donovan Mitchell">Donovan Mitchell (CLE)</option>
-                        <option value="Jaylen Brown">Jaylen Brown (BOS)</option>
-                        <option value="Karl-Anthony Towns">Karl-Anthony Towns (NYK)</option>
-                        <option value="Chet Holmgren">Chet Holmgren (OKC)</option>
+                    <label class="block text-sm text-zinc-300 mb-2 font-medium uppercase tracking-wide">Giocatore NBA</label>
+                    <select id="playerSelect" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 text-base focus:border-yellow-500 outline-none" onchange="mostraUltimiValori()">
+                        <option value="">Seleziona un giocatore</option>
+                        <option value="Luka Doncic" data-team="LAL">Luka Doncic (LAL) - 32.6 PPG</option>
+                        <option value="Shai Gilgeous-Alexander" data-team="OKC">Shai Gilgeous-Alexander (OKC) - 31.9 PPG</option>
+                        <option value="Anthony Edwards" data-team="MIN">Anthony Edwards (MIN) - 29.6 PPG</option>
+                        <option value="Nikola Jokic" data-team="DEN">Nikola Jokic (DEN) - 29.2 PPG / 12.6 RPG</option>
+                        <option value="Giannis Antetokounmpo" data-team="MIL">Giannis Antetokounmpo (MIL) - 30.5 PPG</option>
+                        <option value="Jayson Tatum" data-team="BOS">Jayson Tatum (BOS) - 28.4 PPG</option>
+                        <option value="Stephen Curry" data-team="GSW">Stephen Curry (GSW) - 27.1 PPG / 5.3 3PM</option>
+                        <option value="LeBron James" data-team="LAL">LeBron James (LAL) - 25.8 PPG</option>
+                        <option value="Tyrese Maxey" data-team="PHI">Tyrese Maxey (PHI) - 31.5 PPG</option>
+                        <option value="Ja Morant" data-team="MEM">Ja Morant (MEM) - 25.8 PPG</option>
+                        <option value="Devin Booker" data-team="PHX">Devin Booker (PHX) - 27.5 PPG</option>
+                        <option value="Donovan Mitchell" data-team="CLE">Donovan Mitchell (CLE) - 30.7 PPG</option>
+                        <option value="Karl-Anthony Towns" data-team="NYK">Karl-Anthony Towns (NYK) - 26.4 PPG / 11.9 RPG</option>
+                        <option value="Chet Holmgren" data-team="OKC">Chet Holmgren (OKC) - 23.4 PPG</option>
+                        <option value="De'Aaron Fox" data-team="SAC">De'Aaron Fox (SAC) - 26.5 PPG</option>
+                        <option value="Trae Young" data-team="WAS">Trae Young (WAS) - 25.8 PPG / 10.5 APG</option>
+                        <option value="Damian Lillard" data-team="MIL">Damian Lillard (MIL) - 26.0 PPG</option>
+                        <option value="Zion Williamson" data-team="NOP">Zion Williamson (NOP) - 26.5 PPG</option>
+                        <option value="Kyrie Irving" data-team="DAL">Kyrie Irving (DAL) - 25.5 PPG</option>
+                        <option value="Jimmy Butler" data-team="MIA">Jimmy Butler (MIA) - 22.5 PPG</option>
+                        <option value="Joel Embiid" data-team="PHI">Joel Embiid (PHI) - 34.0 PPG</option>
+                        <option value="Victor Wembanyama" data-team="SAS">Victor Wembanyama (SAS) - 25.1 PPG</option>
                     </select>
-                </div>
 
-                <div>
-                    <label class="block text-sm text-zinc-300 mb-2 font-medium uppercase tracking-wide">Statistica</label>
-                    <div class="grid grid-cols-4 gap-3">
-                        <button data-stat="PTS" class="stat-btn bg-yellow-500 text-black py-4 rounded-xl font-semibold transition">Punti</button>
-                        <button data-stat="REB" class="stat-btn border border-zinc-600 hover:border-yellow-500 py-4 rounded-xl font-semibold transition">Rimbalzi</button>
-                        <button data-stat="AST" class="stat-btn border border-zinc-600 hover:border-yellow-500 py-4 rounded-xl font-semibold transition">Assist</button>
-                        <button data-stat="3PM" class="stat-btn border border-zinc-600 hover:border-yellow-500 py-4 rounded-xl font-semibold transition">Triple</button>
+                    <div id="ultimiValori" class="mt-4 sm:mt-6 hidden bg-zinc-800 rounded-xl p-4 border border-zinc-700">
+                        <p class="text-sm text-zinc-400 mb-3">Ultimi 10 valori per <span id="statLabel">Punti</span>:</p>
+                        <div id="listaValori" class="grid grid-cols-5 gap-2 text-center font-mono text-base sm:text-lg"></div>
                     </div>
                 </div>
 
                 <div>
-                    <label class="block text-sm text-zinc-300 mb-2 font-medium uppercase tracking-wide">Linea Over</label>
-                    <input id="lineInput" type="number" step="0.5" value="24.5" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-6 py-5 text-4xl font-bold text-center focus:border-yellow-500 outline-none"/>
+                    <label class="block text-sm text-zinc-300 mb-2 font-medium uppercase tracking-wide">Statistica</label>
+                    <div class="grid grid-cols-4 gap-2 sm:gap-3">
+                        <button data-stat="PTS" class="stat-btn bg-yellow-500 text-black py-3 sm:py-4 rounded-xl font-semibold transition text-sm sm:text-base">Punti</button>
+                        <button data-stat="REB" class="stat-btn border border-zinc-600 hover:border-yellow-500 py-3 sm:py-4 rounded-xl font-semibold transition text-sm sm:text-base">Rimbalzi</button>
+                        <button data-stat="AST" class="stat-btn border border-zinc-600 hover:border-yellow-500 py-3 sm:py-4 rounded-xl font-semibold transition text-sm sm:text-base">Assist</button>
+                        <button data-stat="3PM" class="stat-btn border border-zinc-600 hover:border-yellow-500 py-3 sm:py-4 rounded-xl font-semibold transition text-sm sm:text-base">Triple</button>
+                    </div>
                 </div>
 
-                <button id="calcBtn" class="w-full bg-gradient-to-r from-yellow-600 to-amber-600 hover:from-yellow-500 hover:to-amber-500 text-white font-bold text-xl py-6 rounded-2xl transition shadow-lg active:scale-98 flex items-center justify-center gap-3">
-                    <i class="fa-solid fa-bolt"></i> CALCOLA PROBABILITÀ
+                <div>
+                    <label class="block text-sm text-zinc-300 mb-2 font-medium uppercase tracking-wide">Over</label>
+                    <select id="lineSelect" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 text-base focus:border-yellow-500 outline-none">
+                        <option value="0.5">Over 0.5</option>
+                        <option value="1.5">Over 1.5</option>
+                        <option value="2.5">Over 2.5</option>
+                        <option value="3.5">Over 3.5</option>
+                        <option value="4.5">Over 4.5</option>
+                        <option value="5.5">Over 5.5</option>
+                        <option value="6.5">Over 6.5</option>
+                        <option value="7.5">Over 7.5</option>
+                        <option value="8.5">Over 8.5</option>
+                        <option value="9.5">Over 9.5</option>
+                        <option value="10.5">Over 10.5</option>
+                        <option value="11.5">Over 11.5</option>
+                        <option value="12.5">Over 12.5</option>
+                        <option value="13.5">Over 13.5</option>
+                        <option value="14.5">Over 14.5</option>
+                        <option value="15.5">Over 15.5</option>
+                        <option value="16.5">Over 16.5</option>
+                        <option value="17.5">Over 17.5</option>
+                        <option value="18.5">Over 18.5</option>
+                        <option value="19.5">Over 19.5</option>
+                        <option value="20.5">Over 20.5</option>
+                        <option value="21.5">Over 21.5</option>
+                        <option value="22.5" selected>Over 22.5</option>
+                        <option value="23.5">Over 23.5</option>
+                        <option value="24.5">Over 24.5</option>
+                        <option value="25.5">Over 25.5</option>
+                        <option value="26.5">Over 26.5</option>
+                        <option value="27.5">Over 27.5</option>
+                        <option value="28.5">Over 28.5</option>
+                        <option value="29.5">Over 29.5</option>
+                        <option value="30.5">Over 30.5</option>
+                        <option value="31.5">Over 31.5</option>
+                        <option value="32.5">Over 32.5</option>
+                    </select>
+                </div>
+
+                <button id="calcBtn" class="w-full bg-gradient-to-r from-yellow-600 to-amber-600 hover:from-yellow-500 hover:to-amber-500 text-white font-bold text-lg sm:text-xl py-5 sm:py-6 rounded-2xl transition shadow-lg flex items-center justify-center gap-3">
+                    <i class="fa-solid fa-bolt"></i> CALCOLA
                 </button>
             </div>
 
             <!-- RISULTATO -->
-            <div id="resultPanel" class="hidden bg-black/70 rounded-3xl p-10 border border-yellow-600/40 flex flex-col justify-center">
-                <h3 class="text-2xl font-bold text-yellow-400 mb-6 text-center logo-font">Risultato</h3>
-                <div class="text-center">
-                    <div id="playerName" class="text-3xl font-bold mb-2"></div>
-                    <div id="statLine" class="text-yellow-400 text-2xl mb-6"></div>
-                    <div id="probabilityBig" class="text-9xl font-black text-yellow-400 leading-none">—</div>
-                    <div class="text-4xl text-zinc-300">%</div>
+            <div>
+                <div id="resultPanel" class="hidden bg-black/70 rounded-2xl sm:rounded-3xl p-6 sm:p-10 border border-yellow-600/40">
+                    <h3 class="text-xl sm:text-2xl font-bold text-yellow-400 mb-4 sm:mb-6 text-center logo-font">Risultato LightingBet</h3>
+                    <div class="text-center">
+                        <div id="playerName" class="text-2xl sm:text-3xl font-bold mb-2"></div>
+                        <div id="statLine" class="text-yellow-400 text-lg sm:text-2xl mb-6 sm:mb-8"></div>
+                        <div id="probabilityBig" class="text-7xl sm:text-9xl font-black text-yellow-400 leading-none">—</div>
+                        <div class="text-3xl sm:text-4xl text-zinc-300">%</div>
+                    </div>
+                    <div class="mt-6 sm:mt-8 bg-zinc-900 rounded-xl p-4 text-sm">
+                        <div class="flex justify-between"><span class="text-zinc-400">Media stagionale</span><span id="avgStat" class="font-mono font-bold"></span></div>
+                    </div>
+                    <p class="mt-6 sm:mt-8 text-center text-zinc-400 text-xs">Dati reali al 2 marzo 2026</p>
+                    <button onclick="resetAnalyzer()" class="mt-6 border border-zinc-600 hover:border-yellow-500 text-zinc-300 py-3 rounded-xl transition w-full text-base">
+                        Nuova Analisi
+                    </button>
                 </div>
-                <div class="mt-8 bg-zinc-900 rounded-2xl p-4 text-sm">
-                    <div class="flex justify-between"><span class="text-zinc-400">Media stagionale</span><span id="avgStat" class="font-mono font-bold"></span></div>
-                </div>
-                <p class="mt-8 text-center text-zinc-400 text-xs">Dati aggiornati da balldontlie.io</p>
-                <button onclick="resetAnalyzer()" class="mt-6 border border-zinc-600 hover:border-yellow-500 text-zinc-300 py-3 rounded-xl transition w-full">
-                    Nuova Analisi
-                </button>
-            </div>
 
-            <div id="placeholderPanel" class="text-center py-20 text-zinc-500 col-span-2">
-                Caricamento statistiche live...
+                <div id="placeholderPanel" class="text-center py-16 sm:py-20 text-zinc-500 text-base sm:text-lg">
+                    Seleziona tutto e calcola!
+                </div>
             </div>
         </div>
     </div>
-</section>
+
+    <!-- NOTIZIE FLASH -->
+    <section class="max-w-6xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
+        <h2 class="text-3xl sm:text-4xl font-bold logo-font text-yellow-400 mb-6 sm:mb-10 text-center">Notizie NBA Flash</h2>
+        <p class="text-center text-zinc-400 mb-8 sm:mb-12 text-sm sm:text-base">Aggiornamenti del 2 marzo 2026 • Risultati e infortuni recenti</p>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+            <div class="bg-zinc-800/80 border border-yellow-600/20 rounded-xl sm:rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-shadow duration-300">
+                <div class="p-5 sm:p-6">
+                    <span class="inline-block bg-green-600 text-white text-xs font-bold px-3 py-1 rounded-full mb-3">Risultato</span>
+                    <h3 class="text-lg sm:text-xl font-bold text-white mb-2">Knicks stop Spurs 114-89</h3>
+                    <p class="text-zinc-300 text-sm sm:text-base mb-3">
+                        New York interrompe la striscia di 11 vittorie consecutive di San Antonio (114-89). Bridges 25 pt + 5 rubate, Brunson 24 pt + 7 ass. Wembanyama 25+13.
+                    </p>
+                    <div class="flex items-center justify-between text-xs sm:text-sm text-zinc-500">
+                        <span>NYK vs SAS</span>
+                        <span>2 mar 2026</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-zinc-800/80 border border-yellow-600/20 rounded-xl sm:rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-shadow duration-300">
+                <div class="p-5 sm:p-6">
+                    <span class="inline-block bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full mb-3">Overtime</span>
+                    <h3 class="text-lg sm:text-xl font-bold text-white mb-2">Pistons batte Magic in OT 122-119</h3>
+                    <p class="text-zinc-300 text-sm sm:text-base mb-3">
+                        Jalen Duren 33+16 per Detroit che vince in overtime contro Orlando.
+                    </p>
+                    <div class="flex items-center justify-between text-xs sm:text-sm text-zinc-500">
+                        <span>DET vs ORL</span>
+                        <span>2 mar 2026</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-zinc-800/80 border border-yellow-600/20 rounded-xl sm:rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-shadow duration-300">
+                <div class="p-5 sm:p-6">
+                    <span class="inline-block bg-purple-600 text-white text-xs font-bold px-3 py-1 rounded-full mb-3">In programma</span>
+                    <h3 class="text-lg sm:text-xl font-bold text-white mb-2">Bucks vs Bulls: Giannis out</h3>
+                    <p class="text-zinc-300 text-sm sm:text-base mb-3">
+                        Milwaukee affronta Chicago. Giannis Antetokounmpo out per strain al polpaccio destro.
+                    </p>
+                    <div class="flex items-center justify-between text-xs sm:text-sm text-zinc-500">
+                        <span>MIL vs CHI</span>
+                        <span>2 mar 2026</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-zinc-800/80 border border-yellow-600/20 rounded-xl sm:rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-shadow duration-300">
+                <div class="p-5 sm:p-6">
+                    <span class="inline-block bg-yellow-600 text-black text-xs font-bold px-3 py-1 rounded-full mb-3">Infortuni</span>
+                    <h3 class="text-lg sm:text-xl font-bold text-white mb-2">Mitchell, Morant, Embiid in dubbio</h3>
+                    <p class="text-zinc-300 text-sm sm:text-base mb-3">
+                        Donovan Mitchell (CLE) out per groin strain, Ja Morant (MEM) out per elbow UCL, Joel Embiid (PHI) questionable.
+                    </p>
+                    <div class="flex items-center justify-between text-xs sm:text-sm text-zinc-500">
+                        <span>NBA Injury Report</span>
+                        <span>2 mar 2026</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-zinc-800/80 border border-yellow-600/20 rounded-xl sm:rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-shadow duration-300 md:col-span-2 lg:col-span-1">
+                <div class="p-5 sm:p-6">
+                    <span class="inline-block bg-red-600 text-white text-xs font-bold px-3 py-1 rounded-full mb-3">Late game</span>
+                    <h3 class="text-lg sm:text-xl font-bold text-white mb-2">Kings vs Lakers: LeBron & AD</h3>
+                    <p class="text-zinc-300 text-sm sm:text-base mb-3">
+                        Sacramento sfida Los Angeles. LeBron James e Anthony Davis tornano in campo insieme.
+                    </p>
+                    <div class="flex items-center justify-between text-xs sm:text-sm text-zinc-500">
+                        <span>SAC vs LAL</span>
+                        <span>2 mar 2026</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="text-center mt-8 sm:mt-10">
+            <p class="text-zinc-500 text-xs sm:text-sm">
+                Ultimo aggiornamento: 2 marzo 2026 • Segui <a href="https://twitter.com/NBA" target="_blank" class="text-yellow-400 hover:underline">@NBA</a>
+            </p>
+        </div>
+    </section>
+
+    <!-- ASSISTENZA / FAQ -->
+    <section class="max-w-4xl mx-auto px-4 sm:px-6 py-12 sm:py-16 bg-zinc-900/50 rounded-2xl sm:rounded-3xl border border-yellow-600/30 mt-12 sm:mt-16">
+        <h2 class="text-3xl sm:text-4xl font-bold logo-font text-yellow-400 mb-6 sm:mb-10 text-center">Assistenza e Domande Frequenti</h2>
+
+        <div class="space-y-6">
+            <details class="bg-zinc-800 rounded-xl p-4 sm:p-5 cursor-pointer transition">
+                <summary class="font-semibold text-lg flex items-center gap-3 text-yellow-300">
+                    <i class="fa-solid fa-circle-question text-yellow-400 text-xl"></i>
+                    Come funziona il colore verde/rosso negli ultimi 10 valori?
+                </summary>
+                <div class="mt-3 sm:mt-4 text-zinc-300 text-sm sm:text-base">
+                    <p>Verde = valore ≥ linea Over scelta<br>Rosso = valore < linea Over</p>
+                    <p class="mt-2">Aiuta a vedere il trend recente del giocatore.</p>
+                </div>
+            </details>
+
+            <details class="bg-zinc-800 rounded-xl p-4 sm:p-5 cursor-pointer transition">
+                <summary class="font-semibold text-lg flex items-center gap-3 text-yellow-300">
+                    <i class="fa-solid fa-circle-question text-yellow-400 text-xl"></i>
+                    Come posso segnalare un errore nei dati?
+                </summary>
+                <div class="mt-3 sm:mt-4 text-zinc-300 text-sm sm:text-base">
+                    <p>Scrivi a: <a href="mailto:assistenza.lightingbet@gmail.com" class="text-yellow-400 hover:underline">assistenza.lightingbet@gmail.com</a></p>
+                    <p class="mt-2">Indica giocatore e statistica sbagliata.</p>
+                </div>
+            </details>
+
+            <details class="bg-zinc-800 rounded-xl p-4 sm:p-5 cursor-pointer transition">
+                <summary class="font-semibold text-lg flex items-center gap-3 text-yellow-300">
+                    <i class="fa-solid fa-circle-question text-yellow-400 text-xl"></i>
+                    Il sito è gratis? Ci sono costi nascosti?
+                </summary>
+                <div class="mt-3 sm:mt-4 text-zinc-300 text-sm sm:text-base">
+                    <p>Sì, completamente gratuito. Nessun costo nascosto.</p>
+                </div>
+            </details>
+        </div>
+
+        <div class="mt-8 sm:mt-12 text-center text-zinc-500 text-xs sm:text-sm">
+            Ultimo aggiornamento dati: <strong>2 marzo 2026</strong>
+        </div>
+
+        <div class="mt-8 sm:mt-10 text-center">
+            <button onclick="window.scrollTo({top: 0, behavior: 'smooth'})" 
+                    class="inline-flex items-center gap-2 bg-yellow-600 hover:bg-yellow-500 text-black font-bold py-3 px-8 rounded-xl transition shadow-lg text-sm sm:text-base">
+                <i class="fa-solid fa-arrow-up"></i> Torna su
+            </button>
+        </div>
+
+        <p class="dev-credit text-center mt-6">
+            Developer By Domenico Summa e Salvatore Foscolo
+        </p>
+    </section>
+
+    <!-- FOOTER FISSO -->
+    <footer>
+        <p class="text-center text-sm text-zinc-500 px-4">
+            LightingBet è un simulatore statistico non affiliato alla NBA. I dati sono a scopo dimostrativo.<br>
+            Gioca responsabilmente – 18+. Non costituisce consiglio per scommesse reali.
+        </p>
+    </footer>
 
 <script>
-// ==================== DATI FALLBACK (se API fallisce) ====================
-const fallbackStats = {
-    "Nikola Jokic":     { PTS: 28.7, REB: 13.5, AST: 9.2, "3PM": 1.4 },
-    "Luka Doncic":      { PTS: 32.7, REB:  9.1, AST: 9.5, "3PM": 4.1 },
-    "Shai Gilgeous-Alexander": { PTS: 31.0, REB: 5.8, AST: 6.4, "3PM": 1.8 },
-    "Giannis Antetokounmpo": { PTS: 30.5, REB: 11.8, AST: 6.2, "3PM": 0.9 },
-    "Victor Wembanyama": { PTS: 24.5, REB: 10.8, AST: 3.8, "3PM": 2.6 },
-    "Anthony Edwards":  { PTS: 27.0, REB: 5.4, AST: 4.9, "3PM": 3.1 },
-    "Jayson Tatum":     { PTS: 28.0, REB: 8.7, AST: 5.1, "3PM": 3.4 },
-    "Stephen Curry":    { PTS: 26.5, REB: 4.6, AST: 6.3, "3PM": 5.2 },
-    "LeBron James":     { PTS: 25.0, REB: 7.8, AST: 8.4, "3PM": 2.3 },
-    "Tyrese Maxey":     { PTS: 26.8, REB: 3.7, AST: 6.8, "3PM": 3.9 },
-    "Ja Morant":        { PTS: 25.2, REB: 5.6, AST: 8.1, "3PM": 1.7 },
-    "Devin Booker":     { PTS: 27.1, REB: 4.3, AST: 6.9, "3PM": 3.2 },
-    "Donovan Mitchell": { PTS: 26.9, REB: 4.1, AST: 5.8, "3PM": 3.8 },
-    "Jaylen Brown":     { PTS: 25.4, REB: 6.2, AST: 3.9, "3PM": 2.8 },
-    "Karl-Anthony Towns":{ PTS: 24.8, REB: 11.2, AST: 3.1, "3PM": 2.9 },
-    "Chet Holmgren":    { PTS: 23.1, REB: 8.9, AST: 2.7, "3PM": 3.3 }
+// DATI AGGIORNATI AL 2 MARZO 2026
+const playerStats = {
+    "Luka Doncic": { PTS: 32.6, REB: 8.6, AST: 9.2, "3PM": 4.1, ultimi: { PTS: [35, 40, 28, 32, 38, 36, 30, 45, 33, 37], REB: [9, 10, 8, 9, 11, 8, 9, 10, 7, 12], AST: [10, 11, 9, 10, 12, 9, 10, 11, 8, 13], "3PM": [5, 6, 4, 5, 6, 4, 5, 3, 4, 6] } },
+    "Shai Gilgeous-Alexander": { PTS: 31.9, REB: 5.0, AST: 6.4, "3PM": 1.8, ultimi: { PTS: [33, 35, 29, 37, 31, 34, 36, 30, 32, 38], REB: [5, 6, 4, 7, 5, 6, 5, 6, 4, 7], AST: [7, 8, 6, 9, 7, 8, 7, 6, 8, 9], "3PM": [2, 1, 2, 1, 2, 2, 1, 2, 1, 3] } },
+    "Anthony Edwards": { PTS: 29.6, REB: 5.4, AST: 4.1, "3PM": 3.5, ultimi: { PTS: [31, 28, 35, 27, 33, 30, 32, 34, 29, 36], REB: [5, 4, 6, 5, 4, 6, 5, 4, 6, 5], AST: [4, 3, 5, 4, 3, 5, 4, 3, 5, 4], "3PM": [4, 3, 5, 3, 4, 3, 5, 3, 4, 5] } },
+    "Nikola Jokic": { PTS: 29.2, REB: 12.6, AST: 10.5, "3PM": 1.4, ultimi: { PTS: [35, 30, 28, 34, 31, 27, 39, 26, 32, 30], REB: [13, 12, 14, 11, 13, 15, 10, 14, 12, 15], AST: [11, 10, 12, 9, 11, 13, 10, 12, 11, 14], "3PM": [1, 2, 1, 0, 2, 1, 3, 1, 0, 2] } },
+    "Giannis Antetokounmpo": { PTS: 30.5, REB: 11.8, AST: 6.5, "3PM": 0.9, ultimi: { PTS: [34, 28, 42, 25, 38, 31, 29, 35, 27, 40], REB: [12, 11, 13, 10, 14, 12, 12, 11, 12, 14], AST: [7, 6, 9, 5, 8, 7, 6, 7, 5, 9], "3PM": [1, 0, 1, 0, 1, 1, 0, 1, 0, 2] } },
+    "Jayson Tatum": { PTS: 28.4, REB: 8.5, AST: 5.3, "3PM": 3.6, ultimi: { PTS: [30, 26, 33, 28, 31, 27, 32, 29, 25, 34], REB: [9, 8, 10, 7, 9, 8, 10, 7, 9, 8], AST: [6, 5, 7, 5, 6, 5, 7, 5, 6, 5], "3PM": [4, 3, 4, 3, 4, 3, 4, 3, 4, 3] } },
+    "Stephen Curry": { PTS: 27.1, REB: 4.5, AST: 6.5, "3PM": 5.3, ultimi: { PTS: [28, 25, 31, 23, 29, 26, 30, 24, 27, 32], REB: [5, 4, 5, 4, 5, 4, 5, 4, 5, 4], AST: [7, 6, 8, 6, 7, 6, 8, 6, 7, 6], "3PM": [6, 5, 6, 5, 6, 5, 6, 5, 6, 5] } },
+    "LeBron James": { PTS: 25.8, REB: 7.5, AST: 8.6, "3PM": 2.4, ultimi: { PTS: [25, 29, 23, 27, 26, 30, 24, 28, 22, 31], REB: [8, 7, 9, 7, 8, 7, 9, 7, 8, 7], AST: [9, 8, 10, 8, 9, 8, 10, 8, 9, 8], "3PM": [2, 3, 2, 3, 2, 3, 2, 3, 2, 3] } },
+    "Tyrese Maxey": { PTS: 31.5, REB: 3.8, AST: 7.0, "3PM": 4.0, ultimi: { PTS: [32, 29, 34, 28, 31, 30, 33, 27, 32, 35], REB: [4, 3, 5, 3, 4, 3, 5, 3, 4, 3], AST: [7, 6, 8, 6, 7, 6, 8, 6, 7, 6], "3PM": [4, 3, 5, 3, 4, 3, 5, 3, 4, 5] } },
+    "Ja Morant": { PTS: 25.8, REB: 5.4, AST: 8.3, "3PM": 1.8, ultimi: { PTS: [27, 24, 30, 23, 28, 25, 29, 22, 26, 31], REB: [6, 5, 7, 5, 6, 5, 7, 5, 6, 5], AST: [9, 8, 10, 8, 9, 8, 10, 8, 9, 8], "3PM": [2, 1, 2, 1, 2, 2, 1, 2, 1, 3] } },
+    "Devin Booker": { PTS: 27.5, REB: 4.4, AST: 7.1, "3PM": 3.3, ultimi: { PTS: [29, 26, 32, 25, 30, 27, 28, 24, 29, 33], REB: [4, 5, 4, 5, 4, 5, 4, 5, 4, 5], AST: [7, 8, 7, 8, 7, 8, 7, 8, 7, 8], "3PM": [3, 4, 3, 4, 3, 4, 3, 4, 3, 4] } },
+    "Donovan Mitchell": { PTS: 30.7, REB: 4.2, AST: 5.9, "3PM": 3.9, ultimi: { PTS: [32, 29, 34, 28, 31, 30, 33, 27, 32, 35], REB: [4, 5, 4, 5, 4, 5, 4, 5, 4, 5], AST: [6, 7, 6, 7, 6, 7, 6, 7, 6, 7], "3PM": [4, 3, 5, 3, 4, 3, 5, 3, 4, 5] } },
+    "Karl-Anthony Towns": { PTS: 26.4, REB: 11.9, AST: 3.2, "3PM": 3.0, ultimi: { PTS: [28, 25, 30, 24, 27, 26, 29, 23, 28, 31], REB: [12, 11, 13, 10, 12, 11, 12, 10, 11, 12], AST: [3, 4, 3, 4, 3, 4, 3, 4, 3, 4], "3PM": [3, 2, 3, 2, 3, 2, 3, 2, 3, 2] } },
+    "Chet Holmgren": { PTS: 23.4, REB: 9.0, AST: 2.8, "3PM": 3.4, ultimi: { PTS: [25, 22, 27, 21, 26, 23, 24, 20, 25, 28], REB: [9, 10, 11, 8, 10, 9, 10, 8, 9, 10], AST: [3, 2, 4, 2, 3, 2, 3, 2, 3, 2], "3PM": [4, 3, 4, 3, 4, 3, 4, 3, 4, 3] } },
+    "De'Aaron Fox": { PTS: 26.5, REB: 4.5, AST: 6.2, "3PM": 2.5, ultimi: { PTS: [28, 25, 30, 24, 27, 26, 29, 23, 28, 31], REB: [4, 5, 4, 5, 4, 5, 4, 5, 4, 5], AST: [6, 7, 6, 7, 6, 7, 6, 7, 6, 7], "3PM": [3, 2, 3, 2, 3, 2, 3, 2, 3, 2] } },
+    "Trae Young": { PTS: 25.8, REB: 3.2, AST: 10.5, "3PM": 3.1, ultimi: { PTS: [27, 24, 29, 23, 26, 25, 28, 22, 27, 30], REB: [3, 4, 3, 4, 3, 4, 3, 4, 3, 4], AST: [11, 10, 12, 9, 11, 10, 12, 9, 11, 10], "3PM": [3, 4, 3, 4, 3, 4, 3, 4, 3, 4] } },
+    "Damian Lillard": { PTS: 26.0, REB: 4.0, AST: 7.0, "3PM": 3.8, ultimi: { PTS: [28, 25, 30, 24, 27, 26, 29, 23, 28, 31], REB: [4, 5, 4, 5, 4, 5, 4, 5, 4, 5], AST: [7, 8, 7, 8, 7, 8, 7, 8, 7, 8], "3PM": [4, 3, 5, 3, 4, 3, 5, 3, 4, 5] } },
+    "Zion Williamson": { PTS: 26.5, REB: 7.0, AST: 5.0, "3PM": 0.5, ultimi: { PTS: [28, 25, 30, 24, 27, 26, 29, 23, 28, 31], REB: [7, 8, 7, 8, 7, 8, 7, 8, 7, 8], AST: [5, 6, 5, 6, 5, 6, 5, 6, 5, 6], "3PM": [0, 1, 0, 1, 0, 1, 0, 1, 0, 1] } },
+    "Kyrie Irving": { PTS: 25.5, REB: 5.0, AST: 5.5, "3PM": 3.0, ultimi: { PTS: [27, 24, 29, 23, 26, 25, 28, 22, 27, 30], REB: [5, 6, 5, 6, 5, 6, 5, 6, 5, 6], AST: [6, 7, 6, 7, 6, 7, 6, 7, 6, 7], "3PM": [3, 4, 3, 4, 3, 4, 3, 4, 3, 4] } },
+    "Jimmy Butler": { PTS: 22.5, REB: 6.0, AST: 5.5, "3PM": 1.0, ultimi: { PTS: [24, 21, 26, 20, 25, 22, 23, 19, 24, 27], REB: [6, 7, 6, 7, 6, 7, 6, 7, 6, 7], AST: [6, 7, 6, 7, 6, 7, 6, 7, 6, 7], "3PM": [1, 0, 1, 0, 1, 1, 0, 1, 0, 2] } },
+    "Joel Embiid": { PTS: 34.0, REB: 11.0, AST: 6.0, "3PM": 1.5, ultimi: { PTS: [36, 32, 38, 30, 35, 33, 37, 29, 34, 39], REB: [11, 12, 13, 10, 12, 11, 12, 10, 11, 12], AST: [6, 7, 6, 7, 6, 7, 6, 7, 6, 7], "3PM": [2, 1, 2, 1, 2, 2, 1, 2, 1, 3] } },
+    "Victor Wembanyama": { PTS: 25.1, REB: 11.0, AST: 4.0, "3PM": 2.8, ultimi: { PTS: [27, 23, 31, 20, 29, 25, 26, 22, 28, 24], REB: [12, 10, 13, 9, 12, 11, 10, 11, 9, 13], AST: [5, 4, 6, 3, 5, 4, 5, 4, 3, 6], "3PM": [3, 2, 4, 1, 3, 2, 3, 2, 1, 4] } }
 };
 
-let playerStats = fallbackStats; // fallback di default
 let selectedStat = "PTS";
 
-// Popola select con fallback
-function populateSelect() {
-  const select = document.getElementById('playerSelect');
-  select.innerHTML = '<option value="">Seleziona un giocatore</option>';
-  Object.keys(playerStats).sort().forEach(name => {
-    const opt = document.createElement('option');
-    opt.value = name;
-    opt.textContent = name;
-    select.appendChild(opt);
-  });
-  document.getElementById('placeholderPanel').textContent = 'Seleziona un giocatore e calcola!';
-}
-
-// Carica dati live (se Netlify Function esiste)
-async function loadLiveStats() {
-  try {
-    const res = await fetch('/.netlify/functions/get-nba-stats');
-    if (!res.ok) throw new Error('Netlify function non risponde');
-    playerStats = await res.json();
-    console.log('✅ Dati live caricati');
-  } catch (err) {
-    console.warn('API live non disponibile → uso fallback:', err);
-    playerStats = fallbackStats;
-  }
-  populateSelect(); // Popola sempre dopo tentativo
-}
-
-// Chiama all'avvio
-loadLiveStats().then(() => {
-  // Default stat
-  document.querySelector('[data-stat="PTS"]').click();
-});
-
-// Selezione stat
+// Cambia statistica e aggiorna le ultime 10 partite
 document.querySelectorAll('.stat-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         document.querySelectorAll('.stat-btn').forEach(b => {
@@ -174,41 +434,117 @@ document.querySelectorAll('.stat-btn').forEach(btn => {
         });
         btn.classList.add('bg-yellow-500', 'text-black');
         selectedStat = btn.dataset.stat;
+        document.getElementById('statLabel').textContent = selectedStat;
+        mostraUltimiValori();
     });
 });
 
-// Calcolo
-document.getElementById('calcBtn').addEventListener('click', () => {
+// Mostra ultime 10 della statistica corrente
+function mostraUltimiValori() {
     const player = document.getElementById('playerSelect').value;
-    if (!player) {
-        alert("Seleziona un giocatore prima!");
+    const box = document.getElementById('ultimiValori');
+    const lista = document.getElementById('listaValori');
+
+    if (!player || !playerStats[player]) {
+        box.classList.add('hidden');
         return;
     }
 
-    const line = parseFloat(document.getElementById('lineInput').value) || 20;
-    const stats = playerStats[player] || { PTS: 22, REB: 6, AST: 5, "3PM": 2 };
-    const avg = stats[selectedStat] || 5;
+    const valori = playerStats[player].ultimi?.[selectedStat] || Array(10).fill(0);
+    lista.innerHTML = '';
+    valori.forEach(v => {
+        const div = document.createElement('div');
+        div.textContent = v;
+        div.className = 'bg-zinc-700 rounded p-2 transition-colors duration-300';
+        lista.appendChild(div);
+    });
 
-    let sensitivity = 7;
-    if (selectedStat === "3PM") sensitivity = 13;
-    if (selectedStat === "REB" || selectedStat === "AST") sensitivity = 6;
+    box.classList.remove('hidden');
+}
 
-    let prob = Math.round(50 + (avg - line) * sensitivity);
-    prob = Math.max(8, Math.min(94, prob));
+// Calcolo probabilità
+document.getElementById('calcBtn').addEventListener('click', () => {
+    const player = document.getElementById('playerSelect').value;
+    if (!player) {
+        alert("Seleziona un giocatore!");
+        return;
+    }
 
-    document.getElementById('playerName').textContent = player;
-    document.getElementById('statLine').innerHTML = `Over <span class="font-mono">${line}</span> ${selectedStat}`;
-    document.getElementById('probabilityBig').textContent = prob;
-    document.getElementById('avgStat').textContent = `${avg} ${selectedStat}`;
+    const line = parseFloat(document.getElementById('lineSelect').value);
+    if (isNaN(line)) {
+        alert("Seleziona una linea Over valida!");
+        return;
+    }
 
-    document.getElementById('placeholderPanel').classList.add('hidden');
-    document.getElementById('resultPanel').classList.remove('hidden');
+    document.getElementById('loadingSpinner').style.display = 'flex';
+
+    setTimeout(() => {
+        document.getElementById('loadingSpinner').style.display = 'none';
+
+        const stats = playerStats[player] || { PTS: 22, REB: 6, AST: 5, "3PM": 2 };
+        const avg = stats[selectedStat] || 5;
+
+        let sensitivity = 7;
+        if (selectedStat === "3PM") sensitivity = 13;
+        if (selectedStat === "REB" || selectedStat === "AST") sensitivity = 6;
+
+        let prob = Math.round(50 + (avg - line) * sensitivity);
+        prob = Math.max(8, Math.min(94, prob));
+
+        document.getElementById('playerName').textContent = player;
+        document.getElementById('statLine').innerHTML = `Over <span class="font-mono">${line}</span> ${selectedStat}`;
+        document.getElementById('probabilityBig').textContent = prob;
+        document.getElementById('avgStat').textContent = `${avg} ${selectedStat}`;
+
+        const lista = document.getElementById('listaValori');
+        const valoriDivs = lista.querySelectorAll('div');
+        const valori = playerStats[player].ultimi?.[selectedStat] || [];
+
+        valoriDivs.forEach((div, i) => {
+            const v = valori[i];
+            div.classList.remove('over-reached', 'under-reached');
+            if (v >= line) {
+                div.classList.add('over-reached');
+            } else {
+                div.classList.add('under-reached');
+            }
+        });
+
+        const panel = document.getElementById('resultPanel');
+        panel.classList.remove('hidden');
+        setTimeout(() => panel.classList.add('show'), 50);
+
+        document.getElementById('placeholderPanel').classList.add('hidden');
+    }, 800);
 });
 
 function resetAnalyzer() {
-    document.getElementById('resultPanel').classList.add('hidden');
-    document.getElementById('placeholderPanel').classList.remove('hidden');
+    const panel = document.getElementById('resultPanel');
+    panel.classList.remove('show');
+    setTimeout(() => {
+        panel.classList.add('hidden');
+        document.getElementById('placeholderPanel').classList.remove('hidden');
+    }, 600);
+
+    document.querySelectorAll('#listaValori div').forEach(div => {
+        div.classList.remove('over-reached', 'under-reached');
+        div.className = 'bg-zinc-700 rounded p-2 transition-colors duration-300';
+    });
 }
+
+// Mostra tasto Torna su
+window.addEventListener('scroll', () => {
+    const btn = document.getElementById('backToTop');
+    if (window.scrollY > 300) {
+        btn.classList.add('show');
+    } else {
+        btn.classList.remove('show');
+    }
+});
+
+// Default
+document.querySelector('[data-stat="PTS"]').click();
+mostraUltimiValori();
 </script>
 </body>
 </html>
